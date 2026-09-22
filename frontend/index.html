@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Ask My PDF</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!--
+    SESSION 3 — FRONTEND
+    ----------------------
+    Plain HTML + vanilla JS on purpose: keeps the fetch() calls to
+    /upload and /ask fully visible with nothing hidden behind a
+    framework's build step. Swap this into a Next.js component
+    structure afterward as a bonus exercise if time allows.
+  -->
+
+  <div class="max-w-2xl mx-auto py-10 px-4">
+    <h1 class="text-2xl font-semibold mb-1">Ask My PDF</h1>
+    <p class="text-gray-500 mb-6">Upload a PDF, DOCX, or spreadsheet, then ask questions about it.</p>
+
+    <!-- Upload section -->
+    <div class="bg-white rounded-lg border p-4 mb-6">
+      <input type="file" id="fileInput" accept=".pdf,.docx,.csv,.xls,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="mb-3" />
+      <button id="uploadBtn"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
+        Upload Document
+      </button>
+      <p id="uploadStatus" class="text-sm text-gray-500 mt-2"></p>
+    </div>
+
+    <!-- Chat section -->
+    <div id="chatSection" class="hidden">
+      <div id="chatLog" class="space-y-3 mb-4"></div>
+
+      <div class="flex gap-2">
+        <input id="questionInput" type="text" placeholder="Ask a question about the PDF..."
+          class="flex-1 border rounded px-3 py-2" />
+        <button id="askBtn"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50">
+          Ask
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:4000";
+    let currentDocumentId = null;
+
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const chatSection = document.getElementById("chatSection");
+    const chatLog = document.getElementById("chatLog");
+    const questionInput = document.getElementById("questionInput");
+    const askBtn = document.getElementById("askBtn");
+
+    // --- Upload flow ---
+    uploadBtn.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        uploadStatus.textContent = "Please choose a supported document first.";
+        return;
+      }
+
+      uploadBtn.disabled = true;
+      uploadStatus.textContent = "Uploading and processing... (parsing, chunking, embedding)";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch(`${API_BASE}/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        currentDocumentId = data.documentId;
+        uploadStatus.textContent =
+          `Indexed "${data.filename}" — ${data.pageCount} pages, ${data.chunkCount} chunks.`;
+        chatSection.classList.remove("hidden");
+      } catch (err) {
+        uploadStatus.textContent = `Error: ${err.message}`;
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    // --- Ask flow ---
+    askBtn.addEventListener("click", askQuestion);
+    questionInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") askQuestion();
+    });
+
+    async function askQuestion() {
+      const question = questionInput.value.trim();
+      if (!question || !currentDocumentId) return;
+
+      appendMessage("user", question);
+      questionInput.value = "";
+      askBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: currentDocumentId, question }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Failed to get answer");
+
+        const sourcesText = data.sources.length
+          ? ` (Pages: ${data.sources.join(", ")})`
+          : "";
+        appendMessage("assistant", data.answer + sourcesText);
+      } catch (err) {
+        appendMessage("assistant", `Error: ${err.message}`);
+      } finally {
+        askBtn.disabled = false;
+      }
+    }
+
+    function appendMessage(role, text) {
+      const bubble = document.createElement("div");
+      bubble.className = role === "user"
+        ? "bg-blue-100 text-blue-900 rounded-lg px-3 py-2 ml-auto max-w-[80%]"
+        : "bg-gray-100 text-gray-800 rounded-lg px-3 py-2 mr-auto max-w-[80%]";
+      bubble.textContent = text;
+      chatLog.appendChild(bubble);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+  </script>
+</body>
+</html>
