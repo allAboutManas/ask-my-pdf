@@ -11,7 +11,7 @@ const apiKey =
   process.env.OPENAI_API_KEY;
 
 const ai = new GoogleGenAI(apiKey ? { apiKey } : {});
-const CHAT_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+const CHAT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 /**
  * @param {Array<{ role: string, content: string }>} messages

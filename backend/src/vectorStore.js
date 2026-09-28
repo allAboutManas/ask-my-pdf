@@ -1,37 +1,63 @@
 /**
- * SESSION 1 — VECTOR STORE (Chroma)
+ * VECTOR STORE (Qdrant)
  * ----------------------------------
- * Chroma needs to run as a separate local server before this app starts:
- *
- *     pip install chromadb
- *     chroma run --path ./chroma_data
- *
- * We pass our own Gemini-computed embeddings directly to Chroma instead
- * of letting Chroma compute embeddings for us. This keeps every step of
- * the RAG pipeline visible to students — nothing happens "by magic"
- * inside the vector DB.
- *
- * Cosine similarity happens INSIDE collection.query() below — Chroma's
- * default index compares the query vector against every stored vector
- * using cosine distance and returns the closest matches. That's the
- * "similarity search" step from our architecture diagram.
+ * Qdrant is used for persistent vector storage and similarity search.
+ * The app stores document chunks with their embeddings and retrieves
+ * the closest matches using cosine similarity.
  */
-import { ChromaClient } from "chromadb";
+import { QdrantClient } from "@qdrant/js-client-rest";
+import logger from "./logger.js";
 
-const client = new ChromaClient({ path: process.env.CHROMA_URL });
-const COLLECTION_NAME =
-  process.env.CHROMA_COLLECTION || "ask_my_pdf_gemini_chunks";
+const client = new QdrantClient({
+  url: process.env.QDRANT_URL || "http://localhost:6333",
+  apiKey: process.env.QDRANT_API_KEY,
+});
 
-let collectionPromise = null;
+const COLLECTION_NAME = process.env.QDRANT_COLLECTION || "ask_my_pdf_gemini_chunks";
+const VECTOR_SIZE = Number(process.env.QDRANT_VECTOR_SIZE || 768);
+const DISTANCE = process.env.QDRANT_DISTANCE || "Cosine";
 
-function getCollection() {
-  if (!collectionPromise) {
-    collectionPromise = client.getOrCreateCollection({
-      name: COLLECTION_NAME,
-      metadata: { "hnsw:space": "cosine" }, // explicitly use cosine similarity
-    });
+let collectionReadyPromise = null;
+
+async function ensureCollection() {
+  if (!collectionReadyPromise) {
+    collectionReadyPromise = (async () => {
+      const existsResponse = await client.collectionExists(COLLECTION_NAME).catch((err) => {
+        logger.error("Qdrant collection existence check failed", { error: err.message, collectionName: COLLECTION_NAME });
+        throw err;
+      });
+
+      const exists = Boolean(existsResponse?.exists ?? existsResponse);
+      logger.debug("Qdrant collection status", { collectionName: COLLECTION_NAME, exists });
+
+      if (!exists) {
+        await client.createCollection(COLLECTION_NAME, {
+          vectors: {
+            size: VECTOR_SIZE,
+            distance: DISTANCE,
+          },
+        });
+        logger.info("Qdrant collection created", { collectionName: COLLECTION_NAME, vectorSize: VECTOR_SIZE, distance: DISTANCE });
+        return;
+      }
+
+      const collectionInfo = await client.getCollection(COLLECTION_NAME);
+      const existingVectorSize = Number(
+        collectionInfo?.config?.params?.vectors?.size ??
+          collectionInfo?.config?.params?.vectors?.params?.size ??
+          collectionInfo?.config?.params?.vectors?.size ??
+          0
+      );
+
+      if (existingVectorSize && existingVectorSize !== VECTOR_SIZE) {
+        throw new Error(
+          `Qdrant collection "${COLLECTION_NAME}" already exists with vector size ${existingVectorSize}, but this app is configured for ${VECTOR_SIZE}. Delete the collection or use a new collection name.`
+        );
+      }
+    })();
   }
-  return collectionPromise;
+
+  return collectionReadyPromise;
 }
 
 /**
@@ -42,17 +68,23 @@ function getCollection() {
  * @param {number[][]} embeddings - same order/length as chunks
  */
 export async function storeChunks(documentId, chunks, embeddings) {
-  const collection = await getCollection();
+  await ensureCollection();
 
-  await collection.upsert({
-    ids: chunks.map((c) => `${documentId}-${c.chunkIndex}`),
-    embeddings,
-    documents: chunks.map((c) => c.text),
-    metadatas: chunks.map((c) => ({
+  const points = chunks.map((chunk, index) => ({
+    id: `${documentId}-${chunk.chunkIndex}`,
+    vector: embeddings[index],
+    payload: {
       documentId,
-      pageNumber: c.pageNumber,
-      chunkIndex: c.chunkIndex,
-    })),
+      pageNumber: chunk.pageNumber,
+      chunkIndex: chunk.chunkIndex,
+      text: chunk.text,
+    },
+  }));
+
+  logger.debug("Upserting chunks into Qdrant", { documentId, chunkCount: points.length });
+  await client.upsert(COLLECTION_NAME, {
+    wait: true,
+    points,
   });
 
   return chunks.length;
@@ -68,23 +100,32 @@ export async function storeChunks(documentId, chunks, embeddings) {
  * @param {number} [options.topK]
  */
 export async function queryChunks(queryEmbedding, { documentId, topK = 4 } = {}) {
-  const collection = await getCollection();
+  await ensureCollection();
 
-  const results = await collection.query({
-    queryEmbeddings: [queryEmbedding],
-    nResults: topK,
-    where: documentId ? { documentId } : undefined,
+  const filter = documentId
+    ? {
+        must: [{ key: "documentId", match: { value: documentId } }],
+      }
+    : undefined;
+
+  const results = await client.search(COLLECTION_NAME, {
+    vector: queryEmbedding,
+    limit: topK,
+    filter,
+    with_payload: true,
+    with_vector: false,
   });
 
-  // Chroma returns parallel arrays wrapped one level for batch queries;
-  // we only ever send one query, so we unwrap index [0].
-  const documents = results.documents[0] || [];
-  const metadatas = results.metadatas[0] || [];
-  const distances = results.distances[0] || [];
+  logger.debug("Qdrant similarity search results", {
+    documentId,
+    resultCount: results.length,
+    topK,
+  });
 
-  return documents.map((text, i) => ({
-    text,
-    pageNumber: metadatas[i]?.pageNumber,
-    distance: distances[i], // lower = more similar (cosine distance)
+  return results.map((hit) => ({
+    text: hit.payload?.text || "",
+    pageNumber: hit.payload?.pageNumber,
+    score: hit.score,
+    distance: typeof hit.score === "number" ? 1 - hit.score : null,
   }));
 }

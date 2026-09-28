@@ -17,7 +17,7 @@ const apiKey =
   process.env.OPENAI_API_KEY;
 
 const ai = new GoogleGenAI(apiKey ? { apiKey } : {});
-const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
+const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
 
 /**
  * Embeds a batch of text strings in one API call.
