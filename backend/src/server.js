@@ -141,8 +141,7 @@ app.post("/ask", async (req, res) => {
       return res.status(400).json({ error: "documentId and question are required" });
     }
     if (!documents.has(documentId)) {
-      logger.warn("Ask request for unknown document", { documentId });
-      return res.status(404).json({ error: "Unknown documentId. Upload a supported document first." });
+      logger.info("Document not in server memory (e.g. server restarted), querying Qdrant directly", { documentId });
     }
 
     logger.info("Processing ask request", { documentId, questionLength: question.length });
@@ -155,6 +154,11 @@ app.post("/ask", async (req, res) => {
       documentId,
       topK: 4,
     });
+
+    if (retrievedChunks.length === 0) {
+      logger.warn("No matching chunks found for document", { documentId });
+      return res.status(404).json({ error: "Unknown or empty document. Please upload your document first." });
+    }
     logger.debug("Retrieved matching chunks", {
       documentId,
       resultCount: retrievedChunks.length,

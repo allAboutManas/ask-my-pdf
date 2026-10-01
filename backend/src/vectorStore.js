@@ -5,6 +5,7 @@
  * The app stores document chunks with their embeddings and retrieves
  * the closest matches using cosine similarity.
  */
+import { randomUUID } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import logger from "./logger.js";
 
@@ -38,22 +39,28 @@ async function ensureCollection() {
           },
         });
         logger.info("Qdrant collection created", { collectionName: COLLECTION_NAME, vectorSize: VECTOR_SIZE, distance: DISTANCE });
-        return;
-      }
-
-      const collectionInfo = await client.getCollection(COLLECTION_NAME);
-      const existingVectorSize = Number(
-        collectionInfo?.config?.params?.vectors?.size ??
-          collectionInfo?.config?.params?.vectors?.params?.size ??
+      } else {
+        const collectionInfo = await client.getCollection(COLLECTION_NAME);
+        const existingVectorSize = Number(
           collectionInfo?.config?.params?.vectors?.size ??
-          0
-      );
-
-      if (existingVectorSize && existingVectorSize !== VECTOR_SIZE) {
-        throw new Error(
-          `Qdrant collection "${COLLECTION_NAME}" already exists with vector size ${existingVectorSize}, but this app is configured for ${VECTOR_SIZE}. Delete the collection or use a new collection name.`
+            collectionInfo?.config?.params?.vectors?.params?.size ??
+            collectionInfo?.config?.params?.vectors?.size ??
+            0
         );
+
+        if (existingVectorSize && existingVectorSize !== VECTOR_SIZE) {
+          throw new Error(
+            `Qdrant collection "${COLLECTION_NAME}" already exists with vector size ${existingVectorSize}, but this app is configured for ${VECTOR_SIZE}. Delete the collection or use a new collection name.`
+          );
+        }
       }
+
+      await client.createPayloadIndex(COLLECTION_NAME, {
+        field_name: "documentId",
+        field_schema: "keyword",
+        wait: true,
+      });
+      logger.info("Qdrant payload index ensured for documentId", { collectionName: COLLECTION_NAME });
     })();
   }
 
@@ -71,7 +78,7 @@ export async function storeChunks(documentId, chunks, embeddings) {
   await ensureCollection();
 
   const points = chunks.map((chunk, index) => ({
-    id: `${documentId}-${chunk.chunkIndex}`,
+    id: randomUUID(),
     vector: embeddings[index],
     payload: {
       documentId,
