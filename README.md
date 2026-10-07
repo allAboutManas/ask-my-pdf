@@ -8,7 +8,7 @@
 
 ## 🌟 Overview
 
-**DocuMind** (Ask My PDF) is a production-grade Retrieval-Augmented Generation (RAG) platform designed to transform static documents into dynamic, conversational knowledge bases. Upload PDFs, DOCX files, spreadsheets, or CSVs and interact with your documents with zero hallucinations and verified source page citations.
+**DocuMind** (Ask My PDF) is a production-grade Retrieval-Augmented Generation (RAG) platform designed to transform static documents into dynamic, conversational knowledge bases. Upload PDFs, Word documents (.doc, .docx), Excel workbooks (.xlsx, .xls), or CSVs and interact with your documents with zero hallucinations and verified source page citations.
 
 ---
 
@@ -16,8 +16,8 @@
 
 - 🤖 **Dex AI Companion Mascot**: State-reactive animated companion indicating ingestion states (Standby, File Drag, Vector Indexing, Deep Retrieval, Answering).
 - 🎨 **Obsidian Luxury Design System**: Deep dark mode aesthetics (`#05070c`), ambient glow, glassmorphism, and responsive dual-pane workspace.
-- ⚡ **Multi-Format Ingestion Pipeline**: Ingest PDF, DOCX, XLSX, and CSV documents with sliding window chunking and metadata preservation.
-- 🧠 **Semantic Vector Cloud**: Powered by **Google Gemini embeddings** (`text-embedding-004`, 768 dimensions) and **Qdrant Vector Database** with cosine similarity search.
+- ⚡ **Multi-Format Ingestion Pipeline**: Ingest PDF, Word (.doc, .docx), Excel (.xlsx, .xls), and CSV files with structured table representations, sliding window chunking, and metadata preservation.
+- 🧠 **Semantic Vector Cloud**: Powered by **Google Gemini embeddings** (`gemini-embedding-001` / `text-embedding-004`) and **Qdrant Vector Database** with cosine similarity search.
 - 🎯 **Strict Source Grounding**: Every answer is grounded directly in document chunks with clickable page citation chips (`📄 Page X`).
 - ⚡ **Instant Insight Starters**: One-click prompt starters including *Executive Summary*, *Key Takeaways*, *Facts & Metrics*, and *Action Items*.
 - 🔊 **Tactile Audio Feedback**: Synthesized Web Audio API sound effects for messages, indexing chimes, and query completions.
@@ -29,7 +29,7 @@
 
 ```mermaid
 flowchart LR
-    A[User Document\nPDF / DOCX / CSV] --> B[Ingestion Engine\npdf-parse / mammoth / xlsx]
+    A[User Document\nPDF / DOC / DOCX / XLSX / CSV] --> B[Ingestion Engine\npdf-parse / mammoth / word-extractor / xlsx]
     B --> C[Recursive Chunker\nSliding Window]
     C --> D[Gemini Embeddings\ntext-embedding-004]
     D --> E[(Qdrant Vector DB\nCloud / Local)]

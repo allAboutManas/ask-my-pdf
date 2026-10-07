@@ -126,7 +126,7 @@ export default function HomePage() {
         ...prev,
         {
           role: "assistant",
-          text: `⚠️ **Upload Error**: ${error.message}\n\nPlease verify that the file is not password-protected and is a supported format (.pdf, .docx, .xlsx, .csv).`,
+          text: `⚠️ **Upload Error**: ${error.message}\n\nPlease verify that the file is not password-protected and is a supported format (.pdf, .doc, .docx, .xlsx, .xls, .csv).`,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           sources: [],
         },
