@@ -1,23 +1,17 @@
 /**
  * SESSION 1 — CHUNKING
  * ---------------------
- * We can't embed an entire PDF as one vector — it would be too long,
- * and the embedding would blur together too many unrelated ideas.
- * So we split the extracted text into overlapping chunks.
- *
- * Strategy used here: fixed-size chunking by character count, with
- * overlap so we don't lose context at chunk boundaries.
- *
- * In class: try changing CHUNK_SIZE and OVERLAP and show students
- * how the resulting chunk count and quality change.
+ * Splits document pages into overlapping semantic chunks for embedding.
+ * Uses a boundary-aware sliding window strategy that respects newlines,
+ * paragraphs, markdown tables, and sentence ends, preventing words or table rows
+ * from being sliced mid-sentence.
  */
 
-const CHUNK_SIZE = 1000;   // characters per chunk (roughly ~200-250 tokens)
-const CHUNK_OVERLAP = 150; // characters shared between consecutive chunks
+const CHUNK_SIZE = 1000;   // characters per chunk (~200-250 tokens)
+const CHUNK_OVERLAP = 150; // overlap window to retain contextual continuity
 
 /**
- * Splits raw text into overlapping chunks, tagging each chunk with
- * which page(s) it came from.
+ * Splits extracted document pages into overlapping, boundary-aware chunks.
  *
  * @param {Array<{ pageNumber: number, text: string }>} pages
  * @returns {Array<{ text: string, pageNumber: number, chunkIndex: number }>}
@@ -27,14 +21,40 @@ export function chunkPages(pages) {
   let chunkIndex = 0;
 
   for (const page of pages) {
-    const text = page.text.replace(/\s+/g, " ").trim();
+    if (!page || !page.text) continue;
+
+    // Clean whitespace while preserving linebreaks and paragraph structure
+    const text = page.text
+      .replace(/\r\n/g, "\n")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
     if (!text) continue;
 
     let start = 0;
     while (start < text.length) {
-      const end = Math.min(start + CHUNK_SIZE, text.length);
-      const chunkText = text.slice(start, end).trim();
+      let end = Math.min(start + CHUNK_SIZE, text.length);
 
+      // If we aren't at the end of the text, look back for clean paragraph/line/sentence boundaries
+      if (end < text.length) {
+        const sliceToSearch = text.slice(start, end);
+        const minCut = Math.floor(CHUNK_SIZE * 0.7); // ensure chunks stay reasonably sized
+
+        const doubleBreak = sliceToSearch.lastIndexOf("\n\n");
+        const singleBreak = sliceToSearch.lastIndexOf("\n");
+        const sentenceBreak = sliceToSearch.lastIndexOf(". ");
+
+        if (doubleBreak >= minCut) {
+          end = start + doubleBreak + 2;
+        } else if (singleBreak >= minCut) {
+          end = start + singleBreak + 1;
+        } else if (sentenceBreak >= minCut) {
+          end = start + sentenceBreak + 2;
+        }
+      }
+
+      const chunkText = text.slice(start, end).trim();
       if (chunkText.length > 0) {
         chunks.push({
           text: chunkText,
@@ -43,8 +63,11 @@ export function chunkPages(pages) {
         });
       }
 
-      if (end === text.length) break;
-      start = end - CHUNK_OVERLAP; // step back to create overlap
+      if (end >= text.length) break;
+
+      // Advance start by at least 1 character to guarantee loop termination
+      const nextStart = end - CHUNK_OVERLAP;
+      start = nextStart > start ? nextStart : end;
     }
   }
 

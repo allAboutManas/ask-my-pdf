@@ -88,7 +88,7 @@ export default function DocumentUploader({
           ref={fileInputRef}
           type="file"
           className="hidden-file-input"
-          accept=".pdf,.docx,.csv,.xls,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+          accept=".pdf,.doc,.docx,.csv,.tsv,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values"
           onChange={handleChange}
         />
 
@@ -116,8 +116,8 @@ export default function DocumentUploader({
 
           <div className="format-badges">
             <span className="fmt-badge pdf">PDF</span>
-            <span className="fmt-badge docx">DOCX</span>
-            <span className="fmt-badge xlsx">XLSX</span>
+            <span className="fmt-badge docx">DOC / DOCX</span>
+            <span className="fmt-badge xlsx">EXCEL (XLSX / XLS)</span>
             <span className="fmt-badge csv">CSV</span>
           </div>
         </div>
