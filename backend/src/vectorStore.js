@@ -1,10 +1,3 @@
-/**
- * VECTOR STORE (Qdrant)
- * ----------------------------------
- * Qdrant is used for persistent vector storage and similarity search.
- * The app stores document chunks with their embeddings and retrieves
- * the closest matches using cosine similarity.
- */
 import { randomUUID } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import logger from "./logger.js";
@@ -67,13 +60,6 @@ async function ensureCollection() {
   return collectionReadyPromise;
 }
 
-/**
- * Stores chunks + their embeddings + metadata for a given document.
- *
- * @param {string} documentId - unique id for this uploaded PDF
- * @param {Array<{ text: string, pageNumber: number, chunkIndex: number }>} chunks
- * @param {number[][]} embeddings - same order/length as chunks
- */
 export async function storeChunks(documentId, chunks, embeddings) {
   await ensureCollection();
 
@@ -97,15 +83,6 @@ export async function storeChunks(documentId, chunks, embeddings) {
   return chunks.length;
 }
 
-/**
- * Finds the top-k most similar chunks to a query embedding.
- * Optionally restricts the search to one document.
- *
- * @param {number[]} queryEmbedding
- * @param {object} options
- * @param {string} [options.documentId]
- * @param {number} [options.topK]
- */
 export async function queryChunks(queryEmbedding, { documentId, topK = 4 } = {}) {
   await ensureCollection();
 

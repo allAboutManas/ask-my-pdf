@@ -1,11 +1,3 @@
-/**
- * SESSIONS 1-2 — THE FULL BACKEND PIPELINE
- * ------------------------------------------
- * Two endpoints, matching the two flows in the architecture diagram:
- *
- *   POST /upload  -> indexing flow (parse -> chunk -> embed -> store)
- *   POST /ask     -> query flow    (embed -> retrieve -> augment -> generate)
- */
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -21,18 +13,24 @@ import { generateAnswer } from "./generator.js";
 import logger from "./logger.js";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : "*";
+
+app.use(
+  cors({
+    origin: allowedOrigins === "*" ? "*" : allowedOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.use(express.json({ limit: "50mb" }));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// In-memory record of uploaded documents, for demo purposes.
-// A real app would persist this in a database.
-const documents = new Map(); // documentId -> { filename, pageCount, chunkCount }
+const documents = new Map();
 
-/**
- * INDEXING FLOW
- */
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -60,7 +58,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    // 1. Parse according to file type
     const pages = await extractPagesFromDocument(
       req.file.buffer,
       req.file.originalname,
@@ -77,7 +74,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    // 2. Chunk
     const chunks = chunkPages(pages);
     logger.debug("Document chunked for indexing", {
       documentId,
@@ -85,7 +81,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       chunkCount: chunks.length,
     });
 
-    // 3. Embed (batch, in groups to stay under API limits)
     const BATCH_SIZE = 100;
     const allEmbeddings = [];
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
@@ -99,7 +94,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       allEmbeddings.push(...embeddings);
     }
 
-    // 4. Store
     await storeChunks(documentId, chunks, allEmbeddings);
 
     documents.set(documentId, {
@@ -129,9 +123,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-/**
- * QUERY FLOW
- */
 app.post("/ask", async (req, res) => {
   try {
     const { documentId, question } = req.body;
@@ -141,15 +132,13 @@ app.post("/ask", async (req, res) => {
       return res.status(400).json({ error: "documentId and question are required" });
     }
     if (!documents.has(documentId)) {
-      logger.info("Document not in server memory (e.g. server restarted), querying Qdrant directly", { documentId });
+      logger.info("Document not in server memory, querying Qdrant directly", { documentId });
     }
 
     logger.info("Processing ask request", { documentId, questionLength: question.length });
 
-    // 1. Embed the query (same model as the chunks!)
     const queryEmbedding = await embedText(question);
 
-    // 2. Retrieve top-k similar chunks
     const retrievedChunks = await queryChunks(queryEmbedding, {
       documentId,
       topK: 4,
@@ -165,10 +154,8 @@ app.post("/ask", async (req, res) => {
       pageNumbers: retrievedChunks.map((c) => c.pageNumber),
     });
 
-    // 3. Augment: build the prompt
     const messages = buildMessages(question, retrievedChunks);
 
-    // 4. Generate
     const answer = await generateAnswer(messages);
     logger.info("Answer generated successfully", {
       documentId,
@@ -188,9 +175,22 @@ app.post("/ask", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "DocuMind Neural RAG Backend API",
+    version: "1.0.0",
+    endpoints: {
+      health: "GET /health",
+      upload: "POST /upload",
+      ask: "POST /ask",
+    },
+  });
+});
+
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  logger.info(`Ask My PDF backend running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  logger.info(`Ask My PDF backend running on port ${PORT}`);
 });

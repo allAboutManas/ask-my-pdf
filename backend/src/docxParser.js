@@ -1,21 +1,7 @@
-/**
- * Handles Microsoft Word documents: both legacy .doc (OLE binary) and modern .docx (OOXML).
- * Uses Mammoth for high-fidelity .docx extraction and WordExtractor for binary .doc files,
- * with mutual fallbacks to guarantee robust parsing.
- */
 import mammoth from "mammoth";
 import WordExtractor from "word-extractor";
 import logger from "./logger.js";
 
-/**
- * Splits extracted document text into logical pages.
- * If the document contains form-feed page markers (\f), those are used.
- * Otherwise, segments long documents into pages based on paragraph boundaries (~2500 characters).
- *
- * @param {string} fullText
- * @param {number} charsPerPage
- * @returns {Array<{ pageNumber: number, text: string }>}
- */
 function splitIntoPages(fullText, charsPerPage = 2500) {
   if (!fullText || !fullText.trim()) return [];
 
@@ -24,7 +10,6 @@ function splitIntoPages(fullText, charsPerPage = 2500) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // If explicit form-feed page markers exist
   if (normalized.includes("\f")) {
     const rawPages = normalized.split("\f");
     const pages = rawPages
@@ -33,7 +18,6 @@ function splitIntoPages(fullText, charsPerPage = 2500) {
     if (pages.length > 0) return pages;
   }
 
-  // Segment by natural paragraphs
   const paragraphs = normalized.split(/\n\n+/);
   const pages = [];
   let currentText = "";
@@ -58,11 +42,6 @@ function splitIntoPages(fullText, charsPerPage = 2500) {
   return pages.length > 0 ? pages : [{ pageNumber: 1, text: normalized }];
 }
 
-/**
- * Extracts raw text from legacy .doc binary files using WordExtractor.
- * @param {Buffer} fileBuffer
- * @returns {Promise<string>}
- */
 async function extractFromDocBinary(fileBuffer) {
   const extractor = new WordExtractor();
   const doc = await extractor.extract(fileBuffer);
@@ -80,25 +59,11 @@ async function extractFromDocBinary(fileBuffer) {
   return parts.join("\n\n").trim();
 }
 
-/**
- * Extracts raw text from modern .docx files using Mammoth.
- * @param {Buffer} fileBuffer
- * @returns {Promise<string>}
- */
 async function extractFromDocxZip(fileBuffer) {
   const result = await mammoth.extractRawText({ buffer: fileBuffer });
   return (result.value || "").trim();
 }
 
-/**
- * Universal extractor for Word documents (.doc and .docx).
- * Automatically detects whether the buffer is an OLE binary (.doc) or OOXML zip (.docx),
- * and handles fallbacks gracefully.
- *
- * @param {Buffer} fileBuffer
- * @param {string} fileName
- * @returns {Promise<Array<{ pageNumber: number, text: string }>>}
- */
 export async function extractPagesFromWord(fileBuffer, fileName = "") {
   const name = fileName.toLowerCase();
   const isZip = fileBuffer.length >= 4 && fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4b;
@@ -107,7 +72,6 @@ export async function extractPagesFromWord(fileBuffer, fileName = "") {
   let rawText = "";
   let extractionMethod = "unknown";
 
-  // Strategy 1: If ZIP header or .docx extension -> Mammoth first
   if (isZip || name.endsWith(".docx")) {
     try {
       rawText = await extractFromDocxZip(fileBuffer);
@@ -126,7 +90,6 @@ export async function extractPagesFromWord(fileBuffer, fileName = "") {
     }
   }
 
-  // Strategy 2: If OLE header or .doc extension -> WordExtractor first
   if (!rawText && (isOle || name.endsWith(".doc"))) {
     try {
       rawText = await extractFromDocBinary(fileBuffer);
@@ -140,12 +103,11 @@ export async function extractPagesFromWord(fileBuffer, fileName = "") {
         rawText = await extractFromDocxZip(fileBuffer);
         extractionMethod = "mammoth-fallback";
       } catch (docxErr) {
-        logger.warn("Mammoth fallback also failed", { error: docxErr.message });
+        logger.warn("Mammoth fallback also failed", { error: docErr.message });
       }
     }
   }
 
-  // Strategy 3: Try both in sequence if still unextracted
   if (!rawText) {
     try {
       rawText = await extractFromDocxZip(fileBuffer);
@@ -155,7 +117,6 @@ export async function extractPagesFromWord(fileBuffer, fileName = "") {
         rawText = await extractFromDocBinary(fileBuffer);
         extractionMethod = "word-extractor-generic";
       } catch {
-        // Plain text fallback (in case a plain text or RTF file was uploaded as .doc)
         const utf8Content = fileBuffer.toString("utf8").trim();
         const printableCount = (utf8Content.slice(0, 500).match(/[\x20-\x7E\r\n\t]/g) || []).length;
         if (printableCount > 200) {
@@ -180,16 +141,10 @@ export async function extractPagesFromWord(fileBuffer, fileName = "") {
   return splitIntoPages(rawText);
 }
 
-/**
- * Backward compatibility alias for extractPagesFromDocx.
- */
 export async function extractPagesFromDocx(fileBuffer, fileName = "document.docx") {
   return extractPagesFromWord(fileBuffer, fileName);
 }
 
-/**
- * Alias for .doc files.
- */
 export async function extractPagesFromDoc(fileBuffer, fileName = "document.doc") {
   return extractPagesFromWord(fileBuffer, fileName);
 }

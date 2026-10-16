@@ -6,6 +6,9 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@google/genai": "^2.23.0",
     "@qdrant/js-client-rest": "^1.15.0",

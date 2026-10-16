@@ -8,7 +8,7 @@ import DocumentDossier from "./components/DocumentDossier";
 import ChatMessage from "./components/ChatMessage";
 import { sound } from "./utils/sound";
 
-const API_BASE = "http://localhost:4000";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
 export default function HomePage() {
   const [documentId, setDocumentId] = useState("");
@@ -17,7 +17,7 @@ export default function HomePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isAsking, setIsAsking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [mascotState, setMascotState] = useState("idle"); // idle, dragging, scanning, thinking, happy, error, ready
+  const [mascotState, setMascotState] = useState("idle");
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
 
   const [chatLog, setChatLog] = useState([
@@ -32,12 +32,10 @@ export default function HomePage() {
   const chatBottomRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Auto-scroll chat window when new messages arrive or when thinking
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isAsking]);
 
-  // Global drag-and-drop listener to make Dex react immediately
   useEffect(() => {
     const handleWindowDragOver = (e) => {
       e.preventDefault();
@@ -71,7 +69,6 @@ export default function HomePage() {
     };
   }, [isDraggingGlobal, documentId]);
 
-  // Handle Mute toggle
   const handleToggleMute = () => {
     setIsMuted((prev) => {
       const next = !prev;
@@ -80,7 +77,6 @@ export default function HomePage() {
     });
   };
 
-  // Upload handler
   const handleUploadFile = async (file) => {
     if (!file) return;
 
@@ -136,7 +132,6 @@ export default function HomePage() {
     }
   };
 
-  // Ask question handler
   const handleAskQuestion = async (queryText = null) => {
     const textToSend = typeof queryText === "string" ? queryText : question;
     const trimmed = textToSend.trim();
@@ -146,7 +141,6 @@ export default function HomePage() {
     sound.playPop();
     const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    // Append user question
     setChatLog((prev) => [
       ...prev,
       {
@@ -240,7 +234,6 @@ export default function HomePage() {
 
   return (
     <div className="app-viewport">
-      {/* Dynamic Background Mesh & Ambient Glow Orbs */}
       <div className="bg-canvas">
         <div className="glow-orb orb-1" />
         <div className="glow-orb orb-2" />
@@ -249,19 +242,16 @@ export default function HomePage() {
       </div>
 
       <div className="main-layout-container">
-        {/* Global Navigation Header */}
         <Header
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
           onClearChat={handleClearChat}
           hasMessages={chatLog.length > 1}
+          apiBase={API_BASE}
         />
 
-        {/* Dual Pane Studio Arena */}
         <div className="studio-grid">
-          {/* LEFT COLUMN: Mascot & Document Control Center */}
           <aside className="left-panel">
-            {/* Mascot Companion Dock */}
             <div className="mascot-card-dock">
               <MascotDex
                 state={mascotState}
@@ -270,7 +260,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Document Ingestion or Active Dossier */}
             <div className="document-dock">
               {!documentId ? (
                 <DocumentUploader
@@ -289,7 +278,6 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* System Info Footnote */}
             <div className="system-specs-bar">
               <div className="spec-item">
                 <span className="spec-label">Model</span>
@@ -308,10 +296,8 @@ export default function HomePage() {
             </div>
           </aside>
 
-          {/* RIGHT COLUMN: Interactive Neural Chat Arena */}
           <section className="right-panel">
             <div className="chat-card-frame">
-              {/* Chat Header Bar */}
               <div className="chat-arena-header">
                 <div className="arena-title-group">
                   <div className="radar-dot" />
@@ -335,7 +321,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Chat Message Scroll Window */}
               <div className="chat-scroll-arena" aria-live="polite">
                 {chatLog.map((msg, index) => (
                   <ChatMessage
@@ -346,7 +331,6 @@ export default function HomePage() {
                   />
                 ))}
 
-                {/* Shimmering Neural Thinking Bubble */}
                 {isAsking && (
                   <div className="message-row assistant thinking-state">
                     <div className="message-avatar">
@@ -378,7 +362,6 @@ export default function HomePage() {
                 <div ref={chatBottomRef} />
               </div>
 
-              {/* Chat Input Console Dock */}
               <div className="input-dock-container">
                 <form
                   className="input-dock-form"
@@ -403,7 +386,6 @@ export default function HomePage() {
                       className="chat-textarea"
                     />
 
-                    {/* Input Accessory tools */}
                     <div className="input-accessories">
                       {documentId && (
                         <span className="input-token-hint">

@@ -4,11 +4,9 @@ import { useState } from "react";
 import Image from "next/image";
 import { sound } from "../utils/sound";
 
-// Lightweight, resilient markdown formatter without heavy external bloat
 function formatMarkdown(text) {
   if (!text) return "";
 
-  // Split by code blocks first
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return parts.map((part, partIdx) => {
@@ -22,7 +20,6 @@ function formatMarkdown(text) {
       );
     }
 
-    // Process regular text line by line for lists, headings, and bold
     const lines = part.split("\n");
     return (
       <div key={partIdx} className="prose-block">
@@ -32,7 +29,6 @@ function formatMarkdown(text) {
             return <div key={lineIdx} className="prose-empty-line" />;
           }
 
-          // Headers
           if (trimmed.startsWith("### ")) {
             return <h4 key={lineIdx} className="prose-h3">{parseInline(trimmed.slice(4))}</h4>;
           }
@@ -43,7 +39,6 @@ function formatMarkdown(text) {
             return <h2 key={lineIdx} className="prose-h1">{parseInline(trimmed.slice(2))}</h2>;
           }
 
-          // Bullet list
           if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
             return (
               <div key={lineIdx} className="prose-bullet">
@@ -53,7 +48,6 @@ function formatMarkdown(text) {
             );
           }
 
-          // Numbered list
           const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
           if (numMatch) {
             return (
@@ -64,7 +58,6 @@ function formatMarkdown(text) {
             );
           }
 
-          // Regular paragraph
           return (
             <p key={lineIdx} className="prose-p">
               {parseInline(line)}
@@ -76,24 +69,18 @@ function formatMarkdown(text) {
   });
 }
 
-// Inline token parser for bold, italic, code
 function parseInline(str) {
   if (!str) return null;
 
-  // Split by inline code, bold, italic
   const tokens = [];
   let remaining = str;
   let keyCounter = 0;
 
   while (remaining.length > 0) {
-    // Inline code: `code`
     const codeMatch = remaining.match(/`([^`]+)`/);
-    // Bold: **text**
     const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
-    // Italic: *text*
     const italicMatch = remaining.match(/(?<!\*)\*([^*]+)\*(?!\*)/);
 
-    // Find the earliest match
     let earliest = null;
     let type = "";
 
@@ -115,12 +102,10 @@ function parseInline(str) {
       break;
     }
 
-    // Push text before match
     if (earliest.index > 0) {
       tokens.push(remaining.substring(0, earliest.index));
     }
 
-    // Push matched element
     if (type === "code") {
       tokens.push(
         <code key={`code-${keyCounter++}`} className="inline-code">
@@ -147,7 +132,6 @@ function parseInline(str) {
   return tokens;
 }
 
-// Interactive Code Block with 1-click Copy
 function CodeBlock({ language, code }) {
   const [copied, setCopied] = useState(false);
 
@@ -215,7 +199,6 @@ export default function ChatMessage({ message, timestamp, sources = [] }) {
     }
 
     window.speechSynthesis.cancel();
-    // Clean text for speech
     const cleanText = message.text
       .replace(/```[\s\S]*?```/g, "Code omitted.")
       .replace(/[*#_`]/g, "");
@@ -232,7 +215,6 @@ export default function ChatMessage({ message, timestamp, sources = [] }) {
 
   return (
     <div className={`message-row ${isUser ? "user" : "assistant"}`}>
-      {/* Avatar */}
       <div className="message-avatar">
         {isUser ? (
           <div className="user-avatar-circle">
@@ -255,7 +237,6 @@ export default function ChatMessage({ message, timestamp, sources = [] }) {
         )}
       </div>
 
-      {/* Message Content Container */}
       <div className="message-body-wrap">
         <div className="message-header-meta">
           <span className="sender-name">{isUser ? "You" : "Dex • Scholar AI"}</span>
@@ -272,7 +253,6 @@ export default function ChatMessage({ message, timestamp, sources = [] }) {
           )}
         </div>
 
-        {/* Source Citations & Action Tools for Assistant */}
         {!isUser && (
           <div className="message-footer-tools">
             {sources && sources.length > 0 && (

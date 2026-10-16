@@ -73,7 +73,6 @@ export default function DocumentUploader({
         <span className="rag-pill">Vector Indexing</span>
       </div>
 
-      {/* Drag & Drop Surface */}
       <div
         className={`dropzone-surface ${dragActive ? "drag-over" : ""} ${
           selectedFile ? "has-file" : ""
@@ -123,7 +122,6 @@ export default function DocumentUploader({
         </div>
       </div>
 
-      {/* Selected File Details Bar */}
       {selectedFile && (
         <div className="selected-file-banner">
           <div className="file-info-col">
@@ -154,7 +152,6 @@ export default function DocumentUploader({
         </div>
       )}
 
-      {/* Ingest Button & Uploading Progress */}
       {isUploading ? (
         <div className="upload-progress-box">
           <div className="progress-labels">
