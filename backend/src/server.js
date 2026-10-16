@@ -185,7 +185,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "DocuMind Neural RAG Backend API",
-    version: "1.0.2",
+    version: "1.0.3",
     endpoints: {
       health: "GET /health",
       diag: "GET /diag",
@@ -198,7 +198,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
-    version: "1.0.2",
+    version: "1.0.3",
     config: {
       geminiKeySet: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
       qdrantUrlSet: Boolean(process.env.QDRANT_URL),
