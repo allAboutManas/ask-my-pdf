@@ -2,10 +2,10 @@
 
 > **Intelligent Document Intelligence powered by Google Gemini 2.0 & Qdrant Vector Engine**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://ask-my-pdf-mocha.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://ask-my-pdf-frontend-chi.vercel.app/)
 [![Backend API](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://ask-my-pdf-c2pr.onrender.com/health)
 
-🌐 **Live Application**: [https://ask-my-pdf-mocha.vercel.app](https://ask-my-pdf-mocha.vercel.app/)  
+🌐 **Live Application**: [https://ask-my-pdf-frontend-chi.vercel.app](https://ask-my-pdf-frontend-chi.vercel.app/)  
 ⚡ **Backend API**: [https://ask-my-pdf-c2pr.onrender.com](https://ask-my-pdf-c2pr.onrender.com)
 
 ---
