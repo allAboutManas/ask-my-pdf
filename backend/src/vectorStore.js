@@ -114,3 +114,11 @@ export async function queryChunks(queryEmbedding, { documentId, topK = 4 } = {})
     distance: typeof hit.score === "number" ? 1 - hit.score : null,
   }));
 }
+
+export async function testQdrantConnection() {
+  const existsResponse = await client.collectionExists(COLLECTION_NAME);
+  return {
+    collectionName: COLLECTION_NAME,
+    exists: Boolean(existsResponse?.exists ?? existsResponse),
+  };
+}
