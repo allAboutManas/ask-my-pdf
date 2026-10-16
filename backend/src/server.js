@@ -119,7 +119,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     });
   } catch (err) {
     logger.error("Upload error", { error: err.message, details: err.stack, filename: req.file?.originalname });
-    res.status(500).json({ error: `Failed to process ${req.file?.originalname || "file"}` });
+    res.status(500).json({
+      error: `Failed to process ${req.file?.originalname || "file"}`,
+      details: err.message,
+    });
   }
 });
 
@@ -171,7 +174,7 @@ app.post("/ask", async (req, res) => {
     });
   } catch (err) {
     logger.error("Ask error", { error: err.message, details: err.stack, documentId: req.body?.documentId });
-    res.status(500).json({ error: "Failed to answer question" });
+    res.status(500).json({ error: "Failed to answer question", details: err.message });
   }
 });
 
@@ -188,7 +191,18 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    config: {
+      geminiKeySet: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+      qdrantUrlSet: Boolean(process.env.QDRANT_URL),
+      qdrantApiKeySet: Boolean(process.env.QDRANT_API_KEY),
+      qdrantCollection: process.env.QDRANT_COLLECTION || "ask_my_pdf_gemini_chunks",
+      vectorSize: Number(process.env.QDRANT_VECTOR_SIZE || 768),
+    },
+  });
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
