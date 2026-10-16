@@ -14,17 +14,7 @@ import logger from "./logger.js";
 
 const app = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : "*";
-
-app.use(
-  cors({
-    origin: allowedOrigins === "*" ? "*" : allowedOrigins,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -90,11 +80,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         batchIndex: i / BATCH_SIZE,
         batchSize: batch.length,
       });
-      const embeddings = await embedTexts(batch);
-      allEmbeddings.push(...embeddings);
+      try {
+        const embeddings = await embedTexts(batch);
+        allEmbeddings.push(...embeddings);
+      } catch (embErr) {
+        throw new Error(`Gemini embedding failed: ${embErr.message}${embErr.cause ? ` (${embErr.cause.message || embErr.cause.code || embErr.cause})` : ""}`);
+      }
     }
 
-    await storeChunks(documentId, chunks, allEmbeddings);
+    try {
+      await storeChunks(documentId, chunks, allEmbeddings);
+    } catch (storeErr) {
+      throw new Error(`Qdrant vector storage failed: ${storeErr.message}${storeErr.cause ? ` (${storeErr.cause.message || storeErr.cause.code || storeErr.cause})` : ""}`);
+    }
 
     documents.set(documentId, {
       filename: req.file.originalname,

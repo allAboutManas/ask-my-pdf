@@ -7,10 +7,7 @@ import DocumentUploader from "./components/DocumentUploader";
 import DocumentDossier from "./components/DocumentDossier";
 import ChatMessage from "./components/ChatMessage";
 import { sound } from "./utils/sound";
-
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_URL || "https://ask-my-pdf-c2pr.onrender.com"
-).replace(/\/$/, "");
+import api from "./utils/api";
 
 export default function HomePage() {
   const [documentId, setDocumentId] = useState("");
@@ -91,15 +88,8 @@ export default function HomePage() {
     const uploadStartTime = Date.now();
 
     try {
-      const response = await fetch(`${API_BASE}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Upload failed");
-      }
+      const response = await api.post("/upload", formData);
+      const data = response.data;
 
       setDocumentId(data.documentId);
       setDocumentData(data);
@@ -120,11 +110,15 @@ export default function HomePage() {
     } catch (error) {
       setMascotState("error");
       sound.playTick();
+      const errorMessage =
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message;
       setChatLog((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: `⚠️ **Upload Error**: ${error.message}\n\nPlease verify that the file is not password-protected and is a supported format (.pdf, .doc, .docx, .xlsx, .xls, .csv).`,
+          text: `⚠️ **Upload Error**: ${errorMessage}\n\nPlease verify that the file is not password-protected and is a supported format (.pdf, .doc, .docx, .xlsx, .xls, .csv).`,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           sources: [],
         },
@@ -157,16 +151,11 @@ export default function HomePage() {
     setMascotState("thinking");
 
     try {
-      const response = await fetch(`${API_BASE}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, question: trimmed }),
+      const response = await api.post("/ask", {
+        documentId,
+        question: trimmed,
       });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate answer");
-      }
+      const data = response.data;
 
       setChatLog((prev) => [
         ...prev,
@@ -184,11 +173,15 @@ export default function HomePage() {
     } catch (error) {
       setMascotState("error");
       sound.playTick();
+      const errorMessage =
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message;
       setChatLog((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: `⚠️ **Query Error**: ${error.message}\n\nCould not retrieve chunks. Please verify backend connection or re-upload your document.`,
+          text: `⚠️ **Query Error**: ${errorMessage}\n\nCould not retrieve chunks. Please verify backend connection or re-upload your document.`,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           sources: [],
         },
@@ -249,7 +242,6 @@ export default function HomePage() {
           onToggleMute={handleToggleMute}
           onClearChat={handleClearChat}
           hasMessages={chatLog.length > 1}
-          apiBase={API_BASE}
         />
 
         <div className="studio-grid">

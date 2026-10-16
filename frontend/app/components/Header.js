@@ -4,35 +4,38 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { sound } from "../utils/sound";
 
+import api from "../utils/api";
+
 export default function Header({
   isMuted,
   onToggleMute,
   onClearChat,
   hasMessages,
-  apiBase = process.env.NEXT_PUBLIC_API_URL || "https://ask-my-pdf-c2pr.onrender.com",
 }) {
   const [backendOnline, setBackendOnline] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  const cleanApiBase = (apiBase || "http://localhost:4000").replace(/\/$/, "");
-
   useEffect(() => {
+    let isMounted = true;
     const checkBackend = async () => {
       try {
-        const res = await fetch(`${cleanApiBase}/health`);
-        if (res.ok) {
-          setBackendOnline(true);
-        } else {
-          setBackendOnline(false);
+        const res = await api.get("/health");
+        if (isMounted) {
+          setBackendOnline(res.status === 200);
         }
       } catch {
-        setBackendOnline(false);
+        if (isMounted) {
+          setBackendOnline(false);
+        }
       }
     };
     checkBackend();
     const interval = setInterval(checkBackend, 15000);
-    return () => clearInterval(interval);
-  }, [cleanApiBase]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <>
@@ -62,7 +65,7 @@ export default function Header({
         <div className="header-actions">
           <div
             className={`status-pill ${backendOnline ? "online" : "offline"}`}
-            title={backendOnline ? `Backend active at ${cleanApiBase}` : "Backend unreachable"}
+            title={backendOnline ? `Backend active at ${api.defaults.baseURL}` : "Backend unreachable"}
           >
             <span className="pulse-indicator" />
             <span className="status-text">
