@@ -280,7 +280,7 @@ export default function HomePage() {
               <div className="spec-divider" />
               <div className="spec-item">
                 <span className="spec-label">Vector Dim</span>
-                <span className="spec-value">768 Float32</span>
+                <span className="spec-value">3072 Float32</span>
               </div>
               <div className="spec-divider" />
               <div className="spec-item">
