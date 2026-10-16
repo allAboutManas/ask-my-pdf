@@ -9,7 +9,7 @@ export default function Header({
   onToggleMute,
   onClearChat,
   hasMessages,
-  apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+  apiBase = process.env.NEXT_PUBLIC_API_URL || "https://ask-my-pdf-c2pr.onrender.com",
 }) {
   const [backendOnline, setBackendOnline] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);

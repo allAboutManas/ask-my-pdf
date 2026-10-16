@@ -8,7 +8,9 @@ import DocumentDossier from "./components/DocumentDossier";
 import ChatMessage from "./components/ChatMessage";
 import { sound } from "./utils/sound";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "https://ask-my-pdf-c2pr.onrender.com"
+).replace(/\/$/, "");
 
 export default function HomePage() {
   const [documentId, setDocumentId] = useState("");

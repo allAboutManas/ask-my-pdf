@@ -1,14 +1,15 @@
+import "dotenv/config";
 import { randomUUID } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import logger from "./logger.js";
 
 const client = new QdrantClient({
-  url: process.env.QDRANT_URL || "http://localhost:6333",
+  url: process.env.QDRANT_URL || "https://c9c1ac35-4b40-46cd-896c-e5d64ac38d9a.us-east-2-0.aws.cloud.qdrant.io",
   apiKey: process.env.QDRANT_API_KEY,
 });
 
-const COLLECTION_NAME = process.env.QDRANT_COLLECTION || "ask_my_pdf_gemini_chunks";
-const VECTOR_SIZE = Number(process.env.QDRANT_VECTOR_SIZE || 768);
+const COLLECTION_NAME = process.env.QDRANT_COLLECTION || "chunk1";
+const VECTOR_SIZE = Number(process.env.QDRANT_VECTOR_SIZE || 3072);
 const DISTANCE = process.env.QDRANT_DISTANCE || "Cosine";
 
 let collectionReadyPromise = null;
