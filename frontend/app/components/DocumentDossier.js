@@ -48,7 +48,6 @@ export default function DocumentDossier({
         </button>
       </div>
 
-      {/* Main File Dossier Badge */}
       <div className={`dossier-file-box ${getDocTypeClass(documentData.fileType || documentData.type)}`}>
         <div className="dossier-icon-col">
           <div className="dossier-ext-tag">
@@ -80,7 +79,6 @@ export default function DocumentDossier({
         </div>
       </div>
 
-      {/* Vector Store Assurance Chip */}
       <div className="qdrant-status-banner">
         <div className="qdrant-indicator" />
         <span className="qdrant-text">
@@ -88,7 +86,6 @@ export default function DocumentDossier({
         </span>
       </div>
 
-      {/* Quick Prompt Starters */}
       <div className="quick-prompts-section">
         <span className="prompts-label">Instant Insights & Starters:</span>
         <div className="prompts-grid">

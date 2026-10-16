@@ -1,8 +1,3 @@
-/**
- * SESSION 2 — GENERATION
- * -----------------------
- * Sends the augmented prompt to the Gemini model and returns the answer.
- */
 import { GoogleGenAI } from "@google/genai";
 
 const apiKey =
@@ -13,10 +8,6 @@ const apiKey =
 const ai = new GoogleGenAI(apiKey ? { apiKey } : {});
 const CHAT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-/**
- * @param {Array<{ role: string, content: string }>} messages
- * @returns {Promise<string>}
- */
 export async function generateAnswer(messages) {
   let systemInstruction;
   const contents = [];
@@ -36,7 +27,7 @@ export async function generateAnswer(messages) {
     model: CHAT_MODEL,
     contents,
     config: {
-      temperature: 0.2, // low temperature: we want grounded, consistent answers
+      temperature: 0.2,
       ...(systemInstruction ? { systemInstruction } : {}),
     },
   });

@@ -1,32 +1,16 @@
-/**
- * Dispatcher for all supported document upload types:
- * - PDF documents (.pdf)
- * - Word documents (.doc, .docx)
- * - Excel workbooks (.xlsx, .xls, .xlsm, .xlsb)
- * - CSV and TSV spreadsheets (.csv, .tsv)
- */
 import { extractPagesFromPdf } from "./pdfParser.js";
 import { extractPagesFromWord } from "./docxParser.js";
 import { extractPagesFromSpreadsheet } from "./csvParser.js";
 import logger from "./logger.js";
 
-/**
- * Identifies the document type based on filename extension and MIME type.
- *
- * @param {string} fileName
- * @param {string} mimeType
- * @returns {"pdf" | "word" | "excel" | "csv" | "unknown"}
- */
 export function getDocumentType(fileName = "", mimeType = "") {
   const name = fileName.toLowerCase();
   const type = mimeType.toLowerCase();
 
-  // 1. PDF
   if (name.endsWith(".pdf") || type.includes("pdf")) {
     return "pdf";
   }
 
-  // 2. Microsoft Word (.doc and .docx)
   if (
     name.endsWith(".docx") ||
     name.endsWith(".doc") ||
@@ -39,7 +23,6 @@ export function getDocumentType(fileName = "", mimeType = "") {
     return "word";
   }
 
-  // 3. Delimited Text (CSV / TSV)
   if (
     name.endsWith(".csv") ||
     name.endsWith(".tsv") ||
@@ -49,7 +32,6 @@ export function getDocumentType(fileName = "", mimeType = "") {
     return "csv";
   }
 
-  // 4. Excel Workbooks (.xlsx, .xls, etc.)
   if (
     name.endsWith(".xlsx") ||
     name.endsWith(".xls") ||
@@ -65,14 +47,6 @@ export function getDocumentType(fileName = "", mimeType = "") {
   return "unknown";
 }
 
-/**
- * Parses raw file buffer and extracts structured pages according to file type.
- *
- * @param {Buffer} fileBuffer
- * @param {string} fileName
- * @param {string} mimeType
- * @returns {Promise<Array<{ pageNumber: number, text: string }>>}
- */
 export async function extractPagesFromDocument(fileBuffer, fileName = "", mimeType = "") {
   const documentType = getDocumentType(fileName, mimeType);
 

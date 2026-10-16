@@ -17,7 +17,6 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
     "Every chunk is embedded with precision vector coordinates! 🧭",
   ];
 
-  // React to status changes
   useEffect(() => {
     switch (state) {
       case "dragging":
@@ -49,7 +48,6 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
     }
   }, [state, hasDocument]);
 
-  // Periodic blinking
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setIsBlinking(true);
@@ -67,16 +65,13 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
 
   return (
     <div className={`mascot-container ${state} ${className}`} onClick={handleClick}>
-      {/* Speech Bubble */}
       <div className="mascot-speech-bubble" role="status" aria-live="polite">
         <span className="speech-sparkle">✦</span>
         <span className="speech-text">{speech}</span>
         <div className="bubble-tail" />
       </div>
 
-      {/* Main Mascot Stage */}
       <div className="mascot-stage" title="Click Dex to chat!">
-        {/* Ambient Aura Rings */}
         <div className="mascot-aura" />
         <div className="mascot-orbit-ring" />
         <div className="mascot-particles">
@@ -86,7 +81,6 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
           <span className="p4">▲</span>
         </div>
 
-        {/* 3D Render Avatar with SVG Visor Hologram Overlay */}
         <div className="mascot-body-wrapper">
           <div className="mascot-3d-avatar">
             <Image
@@ -99,7 +93,6 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
             />
           </div>
 
-          {/* Dynamic Laser & Scanner Visor Overlay */}
           {state === "scanning" && (
             <div className="visor-scan-laser">
               <div className="laser-line" />
@@ -116,7 +109,6 @@ export default function MascotDex({ state = "idle", hasDocument = false, onClick
             </div>
           )}
 
-          {/* State badge indicator */}
           <div className={`mascot-status-pill ${state}`}>
             <span className="status-dot" />
             <span className="status-label">

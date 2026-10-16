@@ -1,20 +1,6 @@
-/**
- * Handles spreadsheet-style documents: CSV, TSV, and Excel files (.xls, .xlsx, .xlsm, .xlsb).
- * Uses a native RFC-4180 parser for CSV/TSV to handle quoted commas, newlines, and currency strings,
- * and XLSX library for multi-sheet Excel workbooks.
- * Formats tabular data with clean markdown tables and semantic key-value records for high-fidelity RAG.
- */
 import * as XLSX from "xlsx";
 import logger from "./logger.js";
 
-/**
- * Robust RFC 4180 CSV / TSV parser.
- * Handles delimiters inside quotes, escaped quotes, multiline values, and mixed line breaks.
- *
- * @param {string} text
- * @param {string} [delimiter]
- * @returns {string[][]}
- */
 export function parseCsvText(text, delimiter = null) {
   if (!text) return [];
   const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -42,7 +28,7 @@ export function parseCsvText(text, delimiter = null) {
       if (char === '"') {
         if (nextChar === '"') {
           currentCell += '"';
-          i++; // Skip escaped quote
+          i++;
         } else {
           insideQuotes = false;
         }
@@ -78,19 +64,9 @@ export function parseCsvText(text, delimiter = null) {
   return rows;
 }
 
-/**
- * Formats a grid of tabular rows into paginated, structured text chunks.
- *
- * @param {string[][]} rows
- * @param {string} sheetName
- * @param {number} startPageNum
- * @param {number} rowsPerPage
- * @returns {Array<{ pageNumber: number, text: string }>}
- */
 function formatRowsToPages(rows, sheetName = "Sheet1", startPageNum = 1, rowsPerPage = 25) {
   if (!rows || rows.length === 0) return [];
 
-  // Determine headers from the first non-empty row
   const firstRow = rows[0] || [];
   const headers = firstRow.map((h, idx) => {
     const trimmed = String(h ?? "").trim();
@@ -123,7 +99,6 @@ function formatRowsToPages(rows, sheetName = "Sheet1", startPageNum = 1, rowsPer
     );
     parts.push(`Columns: ${headers.join(" | ")}`);
 
-    // 1. Markdown Table representation
     const maxCols = Math.min(headers.length, 12);
     const tableHeader = "| " + headers.slice(0, maxCols).join(" | ") + " |";
     const tableDivider = "| " + headers.slice(0, maxCols).map(() => "---").join(" | ") + " |";
@@ -140,7 +115,6 @@ function formatRowsToPages(rows, sheetName = "Sheet1", startPageNum = 1, rowsPer
     parts.push(tableDivider);
     parts.push(tableRows.join("\n"));
 
-    // 2. Structured Record representation for semantic vector matching
     parts.push("");
     parts.push("Record Details:");
     batch.forEach((row, rowOffset) => {
@@ -166,17 +140,6 @@ function formatRowsToPages(rows, sheetName = "Sheet1", startPageNum = 1, rowsPer
   return pages;
 }
 
-/**
- * Extracts structured pages from a spreadsheet file (Excel or CSV).
- * Handles:
- * - Direct CSV/TSV native parsing
- * - Multi-sheet Excel parsing (.xlsx, .xls)
- * - Automatic pagination and markdown formatting
- *
- * @param {Buffer} fileBuffer
- * @param {string} fileName
- * @returns {Promise<Array<{ pageNumber: number, text: string }>>}
- */
 export async function extractPagesFromSpreadsheet(fileBuffer, fileName = "spreadsheet") {
   const name = fileName.toLowerCase();
   const isCsvOrTsv = name.endsWith(".csv") || name.endsWith(".tsv");
@@ -186,7 +149,6 @@ export async function extractPagesFromSpreadsheet(fileBuffer, fileName = "spread
   const allPages = [];
   let nextPageNumber = 1;
 
-  // 1. If it's a CSV or TSV file, use our native RFC-4180 parser directly
   if (isCsvOrTsv && !isZipExcel && !isOleExcel) {
     try {
       const text = fileBuffer.toString("utf8");
@@ -211,7 +173,6 @@ export async function extractPagesFromSpreadsheet(fileBuffer, fileName = "spread
     }
   }
 
-  // 2. Parse using XLSX library for Excel files (.xlsx, .xls) or fallback CSV
   try {
     const workbook = XLSX.read(fileBuffer, {
       type: "buffer",
@@ -249,7 +210,6 @@ export async function extractPagesFromSpreadsheet(fileBuffer, fileName = "spread
     logger.warn("XLSX parsing failed", { fileName, error: xlsxErr.message });
   }
 
-  // 3. Fallback: If still empty, attempt raw text line splitting
   if (allPages.length === 0) {
     const rawText = fileBuffer.toString("utf8").replace(/\r\n/g, "\n").trim();
     if (rawText) {

@@ -4,14 +4,22 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { sound } from "../utils/sound";
 
-export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages }) {
+export default function Header({
+  isMuted,
+  onToggleMute,
+  onClearChat,
+  hasMessages,
+  apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+}) {
   const [backendOnline, setBackendOnline] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
+
+  const cleanApiBase = (apiBase || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch("http://localhost:4000/health");
+        const res = await fetch(`${cleanApiBase}/health`);
         if (res.ok) {
           setBackendOnline(true);
         } else {
@@ -24,7 +32,7 @@ export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages
     checkBackend();
     const interval = setInterval(checkBackend, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [cleanApiBase]);
 
   return (
     <>
@@ -52,18 +60,16 @@ export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages
         </div>
 
         <div className="header-actions">
-          {/* Live Backend Status */}
           <div
             className={`status-pill ${backendOnline ? "online" : "offline"}`}
-            title={backendOnline ? "Backend active at http://localhost:4000" : "Backend unreachable"}
+            title={backendOnline ? `Backend active at ${cleanApiBase}` : "Backend unreachable"}
           >
             <span className="pulse-indicator" />
             <span className="status-text">
-              {backendOnline ? "API Online :4000" : "API Offline"}
+              {backendOnline ? "API Online" : "API Offline"}
             </span>
           </div>
 
-          {/* Sound Toggle */}
           <button
             type="button"
             onClick={() => {
@@ -90,7 +96,6 @@ export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages
             )}
           </button>
 
-          {/* Pipeline Info Modal Trigger */}
           <button
             type="button"
             onClick={() => {
@@ -108,7 +113,6 @@ export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages
             </svg>
           </button>
 
-          {/* Clear Chat Button */}
           {hasMessages && (
             <button
               type="button"
@@ -129,7 +133,6 @@ export default function Header({ isMuted, onToggleMute, onClearChat, hasMessages
         </div>
       </header>
 
-      {/* RAG Architecture Modal */}
       {showInfoModal && (
         <div className="modal-backdrop" onClick={() => setShowInfoModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>

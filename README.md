@@ -2,8 +2,6 @@
 
 > **Intelligent Document Intelligence powered by Google Gemini 2.0 & Qdrant Vector Engine**
 
-![DocuMind Application Screenshot](screenshots/documind-preview.png)
-
 ---
 
 ## 🌟 Overview
@@ -141,3 +139,52 @@ Content-Type: application/json
 - **Vector Database**: Qdrant Cloud (`cosine` metric, 768 Float32)
 - **LLM & Embeddings**: Google Gemini 2.0 Flash & Gemini `text-embedding-004`
 - **Parsers**: `pdf-parse`, `mammoth`, `xlsx`, `csv-parser`
+
+---
+
+## 🚀 Deployment Guide (Render + Vercel)
+
+### ⚠️ Deployment Order: Deploy Backend FIRST
+
+You must deploy the **Backend on Render first** so you have its live public URL (e.g., `https://documind-backend.onrender.com`). The **Frontend on Vercel** requires this URL during build and runtime to communicate with the RAG API.
+
+---
+
+### Step 1: Deploy Backend on Render
+
+1. Log in to [Render Dashboard](https://dashboard.render.com/) and click **New + > Web Service**.
+2. Connect your Git repository.
+3. Configure the service settings:
+   - **Name**: `documind-backend` (or your choice)
+   - **Root Directory**: `backend`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/health`
+4. Under **Environment Variables**, add:
+   - `GEMINI_API_KEY`: *(Your Google AI Studio Gemini API key)*
+   - `QDRANT_URL`: *(Your Qdrant Cloud instance URL)*
+   - `QDRANT_API_KEY`: *(Your Qdrant API key)*
+   - `QDRANT_COLLECTION`: `chunk1`
+   - `QDRANT_VECTOR_SIZE`: `3072`
+   - `QDRANT_DISTANCE`: `Cosine`
+   - `LOG_LEVEL`: `info`
+5. Click **Create Web Service**.
+6. Once deployed, test your live backend in a browser:
+   `https://<your-backend-name>.onrender.com/health` &rarr; should return `{"status":"ok"}`.
+   Copy this backend URL for Step 2.
+
+---
+
+### Step 2: Deploy Frontend on Vercel
+
+1. Log in to [Vercel Dashboard](https://vercel.com/) and click **Add New... > Project**.
+2. Import the same Git repository.
+3. In the project configuration:
+   - **Framework Preset**: `Next.js`
+   - **Root Directory**: Click *Edit* and select **`frontend`**
+4. Under **Environment Variables**, add:
+   - `NEXT_PUBLIC_API_URL`: `https://<your-backend-name>.onrender.com` *(Do NOT include trailing slash)*
+5. Click **Deploy**.
+6. Once deployed, open your Vercel URL. Dex AI and the document uploader will connect directly to your live Render backend!
+
